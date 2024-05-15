@@ -12,6 +12,7 @@ pub mod data2excel;
 pub mod utils;
 pub mod check_version;
 pub mod updata;
+pub mod error;
 const ICON: &[u8] = include_bytes!("../resources/windows/xt.ico");
 fn main() {
     dioxus_hot_reload::hot_reload_init!(Config::<FreyaCtx>::default());

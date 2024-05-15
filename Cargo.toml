@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-freya = {version = "0.2",features = ["hot-reload"]}
+freya = {git = "https://github.com/marc2332/freya.git",features = ["hot-reload"]}
 dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }
 tokio = { version = "1.37.0", features = ["full"] }
 tiberius={version="0.12.2",features = ["chrono","tds73"],default-features = false}
@@ -20,6 +20,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.8"
 retry = { version = "^2.0.0" }
+anyhow = "1"
+thiserror = "1"
 
 [build-dependencies]
 embed-resource = "2.4"

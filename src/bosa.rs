@@ -1,4 +1,4 @@
-use crate::utils::band_data_sql_client;
+use crate::{error::MyError, utils::band_data_sql_client};
 
 #[derive(Debug)]
 struct Info {
@@ -27,11 +27,11 @@ pub struct Data {
     pub pdidark: String,
     pub testtime: String,
 }
-pub async fn get_boxno(c: String) -> Option<Vec<Data>> {
+pub async fn get_boxno(c: String) -> anyhow::Result<Vec<Data>,MyError> {
     let mut boxnos: Vec<String> = vec![];
     let mut sns: Vec<Info> = vec![];
     let mut row_data = vec![];
-    let mut client = band_data_sql_client().await;
+    let mut client = band_data_sql_client().await?;
     let stream = client
         .query(
             format!(
@@ -53,7 +53,7 @@ pub async fn get_boxno(c: String) -> Option<Vec<Data>> {
                 }
             }
         }
-        Err(_) => return None,
+        Err(_) => return Err(MyError::NoneError),
     }
     for boxno in boxnos {
         let stream = client
@@ -81,12 +81,12 @@ pub async fn get_boxno(c: String) -> Option<Vec<Data>> {
                     }
                 }
             }
-            Err(_) => return None,
+            Err(_) => return Err(MyError::NoneError),
         }
     }
 
     // let mut infos = vec![];
-    let mut client = band_data_sql_client().await;
+    let mut client = band_data_sql_client().await?;
 
     for info in sns {
         let sql_col =
@@ -161,13 +161,13 @@ pub async fn get_boxno(c: String) -> Option<Vec<Data>> {
             }
             //     }
             // }
-            None => return None,
+            None => return Err(MyError::NoneError),
         }
     }
     if row_data.is_empty(){
-        None
+        Err(MyError::NoneError)
     }else {
-        Some(row_data)
+        Ok(row_data)
     }
     
 }

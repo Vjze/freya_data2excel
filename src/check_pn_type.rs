@@ -1,5 +1,5 @@
 
-use crate::{bosa::{get_boxno, Data}, utils::band_data_sql_client};
+use crate::{bosa::{get_boxno, Data}, error::MyError, utils::band_data_sql_client};
 
 #[derive(Debug, Clone, Default)]
 pub struct PnType{
@@ -8,16 +8,16 @@ pub struct PnType{
     pub sn: String,
     pub boc: String,
 }
-pub async fn do_query(sn: String) -> Option<Vec<Data>> {
-    let t = check_pn_type(sn.clone()).await;
+pub async fn do_query(sn: String) -> anyhow::Result<Vec<Data>,MyError> {
+    let t = check_pn_type(sn.clone()).await?;
     if t.pn_type == "Bosa" {
         get_boxno(sn.clone()).await
     }else {
-        None
+        Err(MyError::NoneError)
     }
 }
-pub async fn check_pn_type(sn: String) -> PnType {
-    let mut client = band_data_sql_client().await;
+pub async fn check_pn_type(sn: String) -> anyhow::Result<PnType> {
+    let mut client = band_data_sql_client().await?;
     let carton_stream = client
         .query(
             format!(
@@ -43,12 +43,12 @@ pub async fn check_pn_type(sn: String) -> PnType {
             let pn_type = pn_row.get::<&str, _>(0).unwrap().to_string();
             let gs = pn_row.get::<&str, _>(1).unwrap().to_string();
             let boc = String::from("Carton");
-            PnType{
+            Ok(PnType{
                 pn_type,
                 gs,
                 sn,
                 boc,
-            }
+            })
         }
         None => {
             let box_stream = client
@@ -76,15 +76,15 @@ pub async fn check_pn_type(sn: String) -> PnType {
                     let pn_type = pn_row.get::<&str, _>(0).unwrap().to_string();
                     let gs = pn_row.get::<&str, _>(1).unwrap().to_string();
                     let boc = String::from("Box");
-                    PnType{
+                    Ok(PnType{
                         pn_type,
                         gs,
                         sn,
                         boc,
-                    }
+                    })
                 }
                 None => {
-                    PnType::default()
+                    Err(MyError::NoneError.into())
                     // let _ = handle.upgrade_in_event_loop(move |ui|{
                     //     ui.set_error("找不到数据!".into());
                     //     ui.invoke_show_confirm_popup();

@@ -1,13 +1,13 @@
 use chrono::Local;
 use rust_xlsxwriter::{Color, Format, FormatAlign, FormatBorder, Workbook};
 
-use crate::{bosa::Data, check_pn_type::check_pn_type, utils::band_data_sql_client};
+use crate::{bosa::Data, check_pn_type::check_pn_type, error::MyError, utils::band_data_sql_client};
 pub enum Tip {
     Ok,
     Err{e:String}
 } 
-pub async fn do_action(datas: Vec<Data>,carton: String) -> Result<Tip, Tip>{
-    let t = check_pn_type(carton.clone()).await;
+pub async fn do_action(datas: Vec<Data>,carton: String) -> anyhow::Result<Tip, MyError>{
+    let t = check_pn_type(carton.clone()).await?;
     if t.gs == "ZJ" {
         universal_file_out_zj(datas, carton).await
     }else {
@@ -107,7 +107,7 @@ pub async fn rosa_universal_file_out(_datas: Vec<Data>) -> tokio::io::Result<()>
 
     Ok(())
 }
-pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> Result<Tip,Tip>{
+pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> anyhow::Result<Tip,MyError>{
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     worksheet.set_column_width_pixels(0, 120).unwrap();
@@ -285,13 +285,13 @@ pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> Result<Tip,
     match workbook.save(file_name) {
         Ok(_) => Ok(Tip::Ok),
         Err(e) => {
-                    Err(Tip::Err{e:e.to_string()})
+                    Err(MyError::ExportError)
         },
     }
 }
 
-pub async fn universal_file_out_zj(datas: Vec<Data>, carton: String) -> Result<Tip,Tip> {
-    let mut client = band_data_sql_client().await;
+pub async fn universal_file_out_zj(datas: Vec<Data>, carton: String) -> anyhow::Result<Tip,MyError> {
+    let mut client = band_data_sql_client().await?;
     let sql_msg = format!("SELECT pn FROM carton_band where carton_no = '{}'", carton);
     let stream = client.query(sql_msg, &[&1i32]).await.unwrap();
     let rowss = stream.into_row().await.unwrap().unwrap();
@@ -446,7 +446,7 @@ pub async fn universal_file_out_zj(datas: Vec<Data>, carton: String) -> Result<T
     let file_name = format!("{}-{}-{}pcs.xlsx", carton, now, datas.len());
     match workbook.save(file_name) {
         Ok(_) => Ok(Tip::Ok),
-        Err(e) => {Err(Tip::Err { e: e.to_string() })},
+        Err(e) => {Err(MyError::ExportError)},
     }
 
 }

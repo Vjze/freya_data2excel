@@ -1,6 +1,9 @@
 use freya::prelude::*;
 
-use crate::{check_pn_type::do_query, check_version::check_version, data2excel::do_action, updata::updata};
+use crate::{
+    check_pn_type::do_query, check_version::check_version, data2excel::do_action, error::MyError,
+    updata::updata,
+};
 
 pub fn app() -> Element {
     // use_init_theme(DARK_THEME);
@@ -9,8 +12,9 @@ pub fn app() -> Element {
     let mut qty = use_signal(|| 0);
     let mut show_popup = use_signal(|| false);
     let mut popup_text = use_signal(|| String::default());
-    let mut check = use_signal(||false);
-    let mut checked = use_signal(||false);
+    let mut check = use_signal(|| false);
+    let mut checked = use_signal(|| false);
+    let platform = use_platform();
     let columns = use_hook(|| {
         vec![
             ("盒号"),
@@ -24,23 +28,26 @@ pub fn app() -> Element {
             ("testtime"),
         ]
     });
-    
     let query_onclick = move |_| {
         let c = input_value.read().clone();
-        spawn(async move {
-            let results = do_query(c).await;
-            match results {
-                Some(res) => {
-                    qty.set(res.len());
-                    result.set(res);
-                },
-                None => {
-                    popup_text.set("该号码没有找到装箱或者装盒信息，请确认后再进行查询!!!".to_string());
-                    show_popup.set(true)
-                },
-            }
-            
-        });
+        if c.is_empty() {
+            popup_text.set(MyError::Empty.to_string());
+            show_popup.set(true)
+        } else {
+            spawn(async move {
+                let results = do_query(c).await;
+                match results {
+                    Ok(res) => {
+                        qty.set(res.len());
+                        result.set(res);
+                    }
+                    Err(e) => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                }
+            });
+        }
     };
 
     let action_onclick = move |_| {
@@ -51,29 +58,39 @@ pub fn app() -> Element {
             match results {
                 Ok(_) => {
                     let c = input_value.read().clone();
-                    popup_text.set(format!("{}已经导出到软件根目录!",c));
+                    popup_text.set(format!("{}已经导出到软件根目录!", c));
                     show_popup.set(true)
-                },
-                Err(e) => {
-                    match e {
-                        crate::data2excel::Tip::Ok => {
-                            let c = input_value.read().clone();
-                            popup_text.set(format!("{}已经导出到软件根目录!",c));
-                            show_popup.set(true)
-                        },
-                        crate::data2excel::Tip::Err { e } => {
-                            popup_text.set(e);
-                            show_popup.set(true)
-                        },
+                }
+                Err(e) => match e {
+                    crate::error::MyError::IoError(e) => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                    crate::error::MyError::NoneError => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                    crate::error::MyError::SqlError(e) => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                    crate::error::MyError::ExportError => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                    crate::error::MyError::OtherError(e) => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
+                    }
+                    crate::error::MyError::Empty => {
+                        popup_text.set(e.to_string());
+                        show_popup.set(true)
                     }
                 },
             }
-            // qty.set(results.len());
-            // result.set(results);
         });
     };
     let updata_onclick = move |_| {
-        
         spawn(async move {
             let results = updata().await;
             match results {
@@ -81,14 +98,12 @@ pub fn app() -> Element {
                     popup_text.set("软件升级成功!".to_string());
                     show_popup.set(true);
                     checked.set(false)
-                },
+                }
                 Err(_e) => {
                     popup_text.set("软件升级失败!".to_string());
                     show_popup.set(true)
-                },
+                }
             }
-            // qty.set(results.len());
-            // result.set(results);
         });
     };
     if check.read().clone() == false {
@@ -101,17 +116,16 @@ pub fn app() -> Element {
                         check.set(true);
                         checked.set(true)
                     }
-                },
+                }
                 None => {
                     popup_text.set("找不到软件版本状态!!".to_string());
                     check.set(true);
                     checked.set(true)
-                },
+                }
             }
-            
         });
     }
-        
+
     rsx!(
         Body {
             if *checked.read() {
@@ -143,13 +157,33 @@ pub fn app() -> Element {
                                     "{popup_text.read().clone()}"
                                 }
                             }
-                            rect{
-                                cross_align: "end",
-                                main_align: "end",
-                                Button {
-                                    onclick: updata_onclick,
-                                    label {
-                                        "升级"
+                            rect {
+                                width:"100%",
+                                height:"100%",
+                                padding: "10",
+                                direction: "horizontal",
+                                main_align: "center",
+                                cross_align: "center",
+                                rect{
+                                    cross_align: "end",
+                                    main_align: "end",
+                                    Button {
+                                        onclick: move |_| {
+                                            platform.exit()
+                                        },
+                                        label {
+                                            "退出"
+                                        }
+                                    }
+                                }
+                                rect{
+                                    cross_align: "end",
+                                    main_align: "end",
+                                    Button {
+                                        onclick: updata_onclick,
+                                        label {
+                                            "升级"
+                                        }
                                     }
                                 }
                             }
@@ -159,18 +193,46 @@ pub fn app() -> Element {
             }
             if *show_popup.read() {
                 Popup {
-                    oncloserequest: move |_| {
-                        show_popup.set(false)
-                    },
+                    show_close_button:false,
+                    // oncloserequest:
+                    // move |_| {
+                    //     show_popup.set(false)
+                    // },
                     PopupTitle {
                         label {
                             "提示"
                         }
                     }
                     PopupContent {
-                        label {
-                            text_align: "center",
-                            "{popup_text.read().clone()}"
+                        rect {
+                            width:"100%",
+                            height:"100%",
+                            padding: "10",
+                            direction: "vertical",
+                            main_align: "center",
+                            cross_align: "center",
+                            rect {
+                                width:"100%",
+                                height:"90%",
+                                main_align: "center",
+                                cross_align: "start",
+                                label {
+                                    text_align: "center",
+                                    "{popup_text.read().clone()}"
+                                }
+                            }
+                            rect{
+                                cross_align: "end",
+                                main_align: "end",
+                                Button {
+                                    onclick: move |_|{
+                                        show_popup.set(false)
+                                    },
+                                    label {
+                                        "确定"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
