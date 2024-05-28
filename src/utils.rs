@@ -18,8 +18,8 @@ fn config() -> Config {
     // config.authentication(AuthMethod::sql_server("tester", "test1234"));
     // config.host("192.168.3.120");
     // config.authentication(AuthMethod::sql_server("sa", "a1"));
-    // config.host("192.168.3.250");
-    config.host("192.168.0.250");
+    config.host("192.168.3.250");
+    // config.host("192.168.0.250");
     config.authentication(AuthMethod::sql_server("osatest", "osatest"));
     config.port(1433);
     config.trust_cert();
