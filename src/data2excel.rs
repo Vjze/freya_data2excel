@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::Local;
 use rust_xlsxwriter::{Color, Format, FormatAlign, FormatBorder, Workbook};
 
@@ -6,7 +8,7 @@ pub enum Tip {
     Ok,
     Err{e:String}
 } 
-pub async fn do_action(datas: Vec<Data>,carton: String) -> anyhow::Result<Tip, MyError>{
+pub async fn do_action(datas: HashMap<usize, Data>,carton: String) -> anyhow::Result<Tip, MyError>{
     let t = check_pn_type(carton.clone()).await?;
     if t.gs == "ZJ" {
         universal_file_out_zj(datas, carton).await
@@ -107,7 +109,7 @@ pub async fn rosa_universal_file_out(_datas: Vec<Data>) -> tokio::io::Result<()>
 
     Ok(())
 }
-pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> anyhow::Result<Tip,MyError>{
+pub async fn universal_file_out(datas: HashMap<usize,Data>, carton: String) -> anyhow::Result<Tip,MyError>{
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     worksheet.set_column_width_pixels(0, 120).unwrap();
@@ -212,8 +214,8 @@ pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> anyhow::Res
     worksheet
         .write_string_with_format(0, 19, "PD_Idark （nA）", &bt_format)
         .unwrap();
-    for (n, data) in datas.iter().enumerate() {
-        let x: u32 = n.try_into().unwrap();
+    for (n, data) in datas.iter() {
+        let x: u32 = n.clone().try_into().unwrap();
         // for (c,d) in data.iter().enumerate(){
         //     let y: u16 = c.try_into().unwrap();
 
@@ -290,7 +292,7 @@ pub async fn universal_file_out(datas: Vec<Data>, carton: String) -> anyhow::Res
     }
 }
 
-pub async fn universal_file_out_zj(datas: Vec<Data>, carton: String) -> anyhow::Result<Tip,MyError> {
+pub async fn universal_file_out_zj(datas: HashMap<usize,Data>, carton: String) -> anyhow::Result<Tip,MyError> {
     let mut client = band_data_sql_client().await?;
     let sql_msg = format!("SELECT pn FROM carton_band where carton_no = '{}'", carton);
     let stream = client.query(sql_msg, &[&1i32]).await.unwrap();
@@ -389,8 +391,8 @@ pub async fn universal_file_out_zj(datas: Vec<Data>, carton: String) -> anyhow::
 
     //         worksheet.write_string_with_format(x + 1, y, d, &str_format).unwrap();
     //     }
-    for (n, data) in datas.iter().enumerate() {
-        let x: u32 = n.try_into().unwrap();
+    for (n, data) in datas.iter() {
+        let x: u32 = n.clone().try_into().unwrap();
         worksheet
             .write_string_with_format(x + 1, 0, pn.clone(), &str_format)
             .unwrap();

@@ -1,14 +1,16 @@
+use std::collections::HashMap;
+
 use freya::prelude::*;
 
 use crate::{
-    check_pn_type::do_query, check_version::check_version, data2excel::do_action, error::MyError,
-    updata::updata,
+     check_pn_type::do_query, check_version::check_version, data2excel::do_action, error::MyError, updata::updata
 };
 
 pub fn app() -> Element {
     // use_init_theme(DARK_THEME);
     let mut input_value = use_signal(|| String::new());
-    let mut result = use_signal(|| vec![]);
+    // let mut result = use_signal(|| vec![]);
+    let mut result = use_signal(|| HashMap::new());
     let mut qty = use_signal(|| 0);
     let mut show_popup = use_signal(|| false);
     let mut popup_text = use_signal(|| String::default());
@@ -351,7 +353,7 @@ pub fn app() -> Element {
                     }
                     TableBody {
                         ScrollView {
-                            for (i, item) in result.read().iter().enumerate() {
+                            for (i, item) in result.read().iter() {
                                 TableRow {
                                     key: "{i}",
                                     alternate_colors: i % 2 == 0,

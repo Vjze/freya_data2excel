@@ -1,4 +1,3 @@
-
 use tiberius::{AuthMethod, Client, Config};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
@@ -20,7 +19,7 @@ fn config() -> Config {
     // config.host("192.168.3.120");
     // config.authentication(AuthMethod::sql_server("sa", "a1"));
     // config.host("192.168.3.250");
-    config.host("192.168.100.250");
+    config.host("192.168.0.250");
     config.authentication(AuthMethod::sql_server("osatest", "osatest"));
     config.port(1433);
     config.trust_cert();

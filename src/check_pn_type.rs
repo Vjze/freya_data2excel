@@ -1,4 +1,6 @@
 
+use std::collections::HashMap;
+
 use crate::{bosa::{get_boxno, Data}, error::MyError, utils::band_data_sql_client};
 
 #[derive(Debug, Clone, Default)]
@@ -8,7 +10,8 @@ pub struct PnType{
     pub sn: String,
     pub boc: String,
 }
-pub async fn do_query(sn: String) -> anyhow::Result<Vec<Data>,MyError> {
+// pub async fn do_query(sn: String) -> anyhow::Result<Vec<Data>,MyError> {
+pub async fn do_query(sn: String) -> anyhow::Result<HashMap<usize,Data>,MyError> {
     let t = check_pn_type(sn.clone()).await?;
     if t.pn_type == "Bosa" {
         get_boxno(sn.clone()).await
